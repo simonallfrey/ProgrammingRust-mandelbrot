@@ -77,6 +77,7 @@ fn test_parse_complex() {
 /// `pixel` is a (column, row) pair indicating a particular pixel in that image.
 /// The `upper_left` and `lower_right` parameters are points on the complex
 /// plane designating the area our image covers.
+
 fn pixel_to_point(bounds: (usize, usize),
                   pixel: (usize, usize),
                   upper_left: Complex<f64>,
@@ -99,6 +100,53 @@ fn test_pixel_to_point() {
                               Complex { re: -1.0, im:  1.0 },
                               Complex { re:  1.0, im: -1.0 }),
                Complex { re: -0.5, im: -0.5 });
+}
+
+fn get_ul_lr(bounds: (usize, usize),
+                  center: Complex<f64>,
+                  scale: f64)
+    -> (Complex<f64>,Complex<f64>)
+{
+    let half_width = 0.5 * bounds.0 as f64 / scale;
+    let half_height = 0.5 * bounds.1 as f64 / scale;
+    (Complex {
+        // upper left
+        re: center.re - half_width,
+        im: center.im + half_height
+    },
+     Complex {
+         // lower right
+        re: center.re + half_width,
+        im: center.im - half_height
+    })
+}
+#[test]
+fn test_get_ul_lr() {
+    assert_eq!(get_ul_lr((100, 100),
+                         Complex { re: 0.0, im:  0.0 },
+                         50.0),
+               (Complex { re: -1.0, im: 1.0 },
+                Complex { re: 1.0, im: -1.0 })
+               );
+}
+
+fn get_lower_right(bounds: (usize, usize),
+                  upper_left: Complex<f64>,
+                  scale: f64)
+    -> Complex<f64>
+{
+    Complex {
+        re: upper_left.re + bounds.0 as f64 / scale,
+        im: upper_left.im - bounds.1 as f64 / scale
+    }
+}
+
+#[test]
+fn test_get_lower_right() {
+    assert_eq!(get_lower_right((100, 100),
+                              Complex { re: -1.0, im:  1.0 },
+                              50.0),
+               Complex { re: 1.0, im: -1.0 });
 }
 
 /// Render a rectangle of the Mandelbrot set into a buffer of pixels.
@@ -153,10 +201,12 @@ fn main() {
 
     if args.len() != 5 {
         writeln!(std::io::stderr(),
-                 "Usage: mandelbrot FILE PIXELS UPPERLEFT LOWERRIGHT")
+                 // "Usage: mandelbrot FILE PIXELS UPPERLEFT LOWERRIGHT")
+                 "Usage: mandelbrot FILE PIXELS CENTER SCALE")
             .unwrap();
         writeln!(std::io::stderr(),
-                 "Example: {} mandel.png 1000x750 -1.20,0.35 -1,0.20",
+                 // "Example: {} mandel.png 1000x750 -1.20,0.35 -1,0.20",
+                 "Example: {} mandel.png 1000x750 -1.20,0.35 5000",
                  args[0])
             .unwrap();
         std::process::exit(1);
@@ -164,10 +214,12 @@ fn main() {
 
     let bounds = parse_pair(&args[2], 'x')
         .expect("error parsing image dimensions");
-    let upper_left = parse_complex(&args[3])
+    let center = parse_complex(&args[3])
         .expect("error parsing upper left corner point");
-    let lower_right = parse_complex(&args[4])
+    let scale: &f64 = &args[4]
+        .parse()
         .expect("error parsing lower right corner point");
+    let (upper_left,lower_right) = get_ul_lr(bounds, center, *scale);
 
     let mut pixels = vec![0; bounds.0 * bounds.1];
 
