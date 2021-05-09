@@ -1,0 +1,3 @@
+Create the pngs for the movie with:
+
+y=0;for i in $(seq 400 500 20000) ; do target/release/mandelbrot ~/Public/mandelMovie/$((++y)).png 1366x768 -1.2,0.3 $i;echo $y; done
